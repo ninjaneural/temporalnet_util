@@ -1,6 +1,6 @@
-# TemporalNet Util
+# TemporalNet Util (stable-diffusion-webui)
 
-TemporalNet을 사용하여 face detail을 지원하는 간단한 extension이에요  
+TemporalNet을 사용하여 face detail을 지원하는 간단한 sd-webui extension이에요  
 (Simple extension that helps with face detail using TemporalNet.)
 
 
