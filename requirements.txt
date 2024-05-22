@@ -1,0 +1,6 @@
+ultralytics
+huggingface_hub
+ffmpeg-python
+opencv-python
+requests
+json
