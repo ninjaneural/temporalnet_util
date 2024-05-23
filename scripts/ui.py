@@ -16,6 +16,7 @@ from controlnet_ext import (
 
 # Global variable to control the cancellation
 cancel_process = threading.Event()
+share_value = {"cancel":False}
 
 def extract_video(video, fps, output_path):
     print(f"# video extract mode")
@@ -31,15 +32,23 @@ def combine_video(frames_path, video, fps):
     print(f"frames_path {frames_path}")
     video_util.combine(frames_path, video, "", fps)    
 
+def ui_buttons(status, complete = False):
+    if complete:
+        return status, "complete", gr.Button.update(visible=True), gr.Button.update(value="Cancel", visible=False)
+    else:
+        return status, "", gr.Button.update(visible=False), gr.Button.update(value="Cancel", visible=True)
+
 def process_video(input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video):
-    global cancel_process
+    global share_value
 
-    # Reset the cancel event before starting the process
-    cancel_process.clear()
+    share_value["cancel"] = False
 
-    yield "", ""
-    time.sleep(3)
+    yield ui_buttons("prepare..")
+    # time.sleep(3)
 
+    if not output_images_folder:
+        yield ui_buttons("output_images_folder is empty", True)
+        return
 
     if input_video_mode=="Input Video":
         print(upload_video)
@@ -47,20 +56,26 @@ def process_video(input_video_mode,upload_video,video_path,input_folder,force_fp
     
     if input_video_mode=="Input Video" or input_video_mode=="Input Video Path":
         if video_path and os.path.isfile(video_path):
-            input_folder = os.path.join(os.path.dirname(video_path), "input_frames")
+            input_folder = os.path.join(output_images_folder, "video_frames")
             video_fps = extract_video(video_path, force_fps, input_folder)
             if not target_fps:
                 target_fps = video_fps
         else:
             print("video file not found")
-            yield "video file not found", "complete"
+            yield ui_buttons("video file not found", True)
             return
     
     if not target_fps:
         target_fps = 30
+
+    yield ui_buttons(f"input images : {input_folder} target_fps : {target_fps}")
+    time.sleep(1)
+
+    if share_value["cancel"]:
+        yield ui_buttons(f"cancel clicked", True)
     
-    for update in enhance_face(
-        cancel_process,
+    for update, msg in enhance_face(
+        share_value,
         input_folder,
         output_images_folder,
         'fixed',
@@ -83,19 +98,73 @@ def process_video(input_video_mode,upload_video,video_path,input_folder,force_fp
         0,
     ):
         if update=="done":
-            yield "combine video file..", ""
+            yield ui_buttons("combine video file..")
             if output_video:
                 combine_video(output_images_folder, output_video, target_fps)
             else:
+                output_video = os.path.join(output_images_folder, "output.mp4")
                 combine_video(output_images_folder, os.path.join(output_images_folder, "output.mp4"), target_fps)
-            yield update, "complete"
+            yield ui_buttons(output_video, True)
         elif update=="error":
-            yield update, "complete"
+            yield ui_buttons(msg, True)
+        elif update=="cancel":
+            yield ui_buttons(msg, True)
         else:
-            yield update, ""
+            yield ui_buttons(msg)
 
-def create_face_temporal_net(sampler_names):
+def create_controlnet(cn_models):
+    with gr.Row(variant="panel"):
+        with gr.Column(variant="compact"):
+            controlnet_model = gr.Dropdown(
+                label="ControlNet model",
+                choices=cn_models,
+                value="None",
+                visible=True,
+                type="value",
+                interactive=True,
+            )
 
+            controlnet_module = gr.Dropdown(
+                label="ControlNet module",
+                choices=["None"],
+                value="None",
+                visible=True,
+                type="value",
+                interactive=True,
+            )
+
+            controlnet_weight = gr.Slider(
+                label="ControlNet weight",
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                value=1.0,
+                visible=True,
+                interactive=True,
+            )
+
+        with gr.Column(variant="compact"):
+            controlnet_guidance_start = gr.Slider(
+                label="ControlNet guidance start",
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                value=0.0,
+                visible=True,
+                interactive=True,
+            )
+
+            controlnet_guidance_end = gr.Slider(
+                label="ControlNet guidance end",
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                value=1.0,
+                visible=True,
+                interactive=True,
+            )
+
+def create_temporal_net_util(sampler_names):
     cn_models = ["None", *get_cn_models()]
 
     with gr.Row():
@@ -109,8 +178,8 @@ def create_face_temporal_net(sampler_names):
                     force_fps = gr.Number(value=0, precision=1, label="Force FPS", interactive=True)
                 with gr.Tab(label="Input Frame Images") as input_tab3:
                     input_folder = gr.Textbox(label="Input Frame Images Folder (TemporalNet-Util)",placeholder="Input Frame Images Folder (eg. d:/work/smart)")
-            with gr.Row():
-                input_video_mode = gr.Textbox(label="Selected Tab", show_label=False, value="Input Video")
+            with gr.Row(visible=False):
+                input_video_mode = gr.Textbox(label="Selected Tab", show_label=False, value="Input Video", interactive=False)
             with gr.Row():
                 resize_width = gr.Number(value=0,label="Resize Width", precision=1, interactive=True)
                 resize_height = gr.Number(value=0,label="Resize Height", precision=1, interactive=True)
@@ -155,7 +224,7 @@ def create_face_temporal_net(sampler_names):
                     value=sampler_names[0],
                     visible=True,
                 )
-                seed = gr.Number(value=-1, precision=1, label="Seed", interactive=True)
+                seed = gr.Number(value=2223, precision=1, label="Seed", interactive=True)
 
             with gr.Row():
                 prompt = gr.Textbox(
@@ -170,13 +239,13 @@ def create_face_temporal_net(sampler_names):
                 )
             with gr.Row():
                 sampler_step = gr.Number(value=15, precision=1, label="Sampler Step", interactive=True)
-                cfg_scale = gr.Number(value=7, precision=1, label="CFG", interactive=True)
+                cfg_scale = gr.Number(value=6, precision=1, label="CFG", interactive=True)
                 denoise = gr.Slider(
                     label="Denoise",
                     minimum=0.0,
                     maximum=1.0,
                     step=0.01,
-                    value=0.40,
+                    value=0.35,
                     visible=True,
                     interactive=True,
                 )
@@ -190,96 +259,40 @@ def create_face_temporal_net(sampler_names):
 
             with gr.Row():
                 start_button = gr.Button("Run", variant='primary', elem_id="temporalnet_util_start_button") 
-                cancel_button = gr.Button("Cancel", elem_id="temporalnet_util_cancel_button")
+                cancel_button = gr.Button("Cancel", visible=False, elem_id="temporalnet_util_cancel_button")
 
             with gr.Row():
                 status = gr.Textbox(
                     label="Status",
                     elem_id="temporalnet_util_status",
-                    lines=3,
+                    lines=2,
                     interactive=False,
                 )
+
             with gr.Row(visible=False):
-                check_complete = gr.Textbox(elem_id="temporalnet_util_check_complete", interactive=False)
+                check_complete = gr.Textbox(elem_id="temporalnet_util_check_complete", show_label=False, interactive=False)
 
     def handle_cancel():
-        global cancel_process
-        
-        # Set the cancel event to stop the processing
-        cancel_process.set()
-        time.sleep(3)
-        
-        # Update the UI to reflect the cancellation
-        return "Process was cancelled.", "complete"
+        global share_value
 
-    cancel_button.click(handle_cancel, _js="temporalnet_util_cancel_video", inputs=[], outputs=[status,check_complete])
+        print('share_value',share_value)
+        share_value["cancel"] = True
+        # time.sleep(3)
+        return gr.Button.update(value="Canceling")
+
+    cancel_button.click(handle_cancel, inputs=[], outputs=[cancel_button])
 
     start_button.click(
         fn=process_video, 
-        _js="temporalnet_util_process_video", 
         inputs=[input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video], 
-        outputs=[status,check_complete]
+        outputs=[status, check_complete, start_button, cancel_button]
     )
-
-def controlnet():
-    cn_models = ["None", "Test"]
-
-    with gr.Row(variant="panel"):
-        with gr.Column(variant="compact"):
-            controlnet_model = gr.Dropdown(
-                label="ControlNet model",
-                choices=cn_models,
-                value="None",
-                visible=True,
-                type="value",
-                interactive=True,
-            )
-
-            controlnet_module = gr.Dropdown(
-                label="ControlNet module",
-                choices=["None"],
-                value="None",
-                visible=False,
-                type="value",
-                interactive=True,
-            )
-
-            controlnet_weight = gr.Slider(
-                label="ControlNet weight",
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                value=1.0,
-                visible=True,
-                interactive=True,
-            )
-
-        with gr.Column(variant="compact"):
-            controlnet_guidance_start = gr.Slider(
-                label="ControlNet guidance start",
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                value=0.0,
-                visible=True,
-                interactive=True,
-            )
-
-            controlnet_guidance_end = gr.Slider(
-                label="ControlNet guidance end",
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                value=1.0,
-                visible=True,
-                interactive=True,
-            )
 
 def on_ui_tabs():
     sampler_names = [sampler.name for sampler in all_samplers]
 
     with gr.Blocks(analytics_enabled=False) as face_temporal_net:
-        create_face_temporal_net(sampler_names)
+        create_temporal_net_util(sampler_names)
 
         return ((face_temporal_net, "TemporalNet-Util", "TemporalNetUtil"),)
 

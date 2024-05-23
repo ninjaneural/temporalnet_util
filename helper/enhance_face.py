@@ -7,6 +7,7 @@ from helper.facedetect import process as face_process
 from helper.image_util import resize_image, crop_and_resize, merge_image
 from helper.util import get_image_paths
 import random
+import time
 
 from controlnet_ext import (
     ControlNetExt,
@@ -35,14 +36,15 @@ unit_tempo_v2 = webuiapi.ControlNetUnit(
 
 api = webuiapi.WebUIApi()
 
-def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mode:str, seed:int, frame_width:int, frame_height:int, temporalnet_ver:str, temporalnet_model:str, temporalnet_weight:float, prompt:str, neg_prompt:str, sampler_name:str, sampler_step:int, cfg_scale:int, denoising_strength:float, overwrite: bool, reverse: bool, resume_frame: int, start_frame: int, end_frame: int):
+def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:str, seed:int, frame_width:int, frame_height:int, temporalnet_ver:str, temporalnet_model:str, temporalnet_weight:float, prompt:str, neg_prompt:str, sampler_name:str, sampler_step:int, cfg_scale:int, denoising_strength:float, overwrite: bool, reverse: bool, resume_frame: int, start_frame: int, end_frame: int):
     print(f"###########################################")
     if input_folder and os.path.exists(input_folder):
         face_image_folder = os.path.normpath(os.path.join(output_folder, "./face_images"))
         flow_image_folder = os.path.normpath(os.path.join(output_folder, "./flow_images"))
     else:
         print("input_folder path not found")
-        return "error"
+        yield "error", "input_folder path not found"
+        return
 
     print(f"# input images path {input_folder}")
     print(f"# output path {output_folder}")
@@ -80,7 +82,8 @@ def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mod
 
     if len(input_images_path_list)==0:
         print("images count : 0")
-        return "error"
+        yield "error", "input images count = 0"
+        return
 
     input_img = None
     input_img_arr = None
@@ -108,6 +111,8 @@ def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mod
 
     total_frames = len(input_images_path_list)
     print(f"total frames {total_frames}")
+    yield "", f"total frames {total_frames}"
+    time.sleep(1)
 
     # init frame size
     if frame_width == 0 or frame_height == 0:
@@ -124,10 +129,10 @@ def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mod
 
         frame_number = frame_index + 1
         print(f"# frame {frame_number}/{total_frames}")
-        yield f"# frame {frame_number}/{total_frames}"
+        yield "", f"# frame {frame_number}/{total_frames}"
 
-        if cancel_process.is_set():
-            yield "cancel"
+        if share_value["cancel"]:
+            yield "cancel", "cancel clicked"
             return
         
         if start_frame > frame_number:
@@ -150,6 +155,7 @@ def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mod
         if not overwrite:
             if os.path.isfile(output_image_path):
                 print("skip")
+                # time.sleep(0.1)
                 if frame_number < total_frames and not os.path.isfile(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index + 1]))):
                     print(f"last image {input_images_path_list[frame_index]}")
                     last_image_arr = np.array(Image.open(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index]))))
@@ -217,4 +223,4 @@ def enhance_face(cancel_process, input_folder: str, output_folder: str, seed_mod
         if end_frame > 0 and end_frame == frame_number:
             break
 
-    yield "done"
+    yield "done", ""
