@@ -31,7 +31,7 @@ for extension in extensions.active():
     if not extension.enabled:
         continue
     # For cases like sd-webui-controlnet-master
-    if "sd-webui-controlnet" in extension.name:
+    if "sd-webui-controlnet" in extension.name or "controlnet" in extension.name:
         controlnet_exists = True
         controlnet_path = Path(extension.path)
         cn_base_path = ".".join(controlnet_path.parts[-2:])

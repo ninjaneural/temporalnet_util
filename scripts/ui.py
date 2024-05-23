@@ -263,18 +263,17 @@ def create_temporal_net_util(sampler_names):
                 overwrite_output_images = gr.Checkbox(label="Overwrite Output Images", placeholder="Overwrite output converted frame images")
 
             with gr.Row():
-                target_fps = gr.Number(value=30, precision=1, label="Output Video FPS", interactive=True)
-            with gr.Row():
                 output_video = gr.Textbox(label="Output Video File (If left blank, it will be automatically saved)", placeholder="Output Video File Path (eg. d:/work/output/smart.mp4)")
+                target_fps = gr.Number(value=30, precision=1, label="Output Video FPS", interactive=True)
 
             with gr.Row() as queue_evn_buttons:
                 start_button = gr.Button("Run", variant='primary') 
                 cancel_button = gr.Button("Cancel", visible=False)
 
-            with gr.Column() as noqueue_evn_buttons:
-                with gr.Row():
-                    start_noqueue_button = gr.Button("Run (No Queue)", variant='primary', elem_id="temporalnet_util_start_button") 
-                    cancel_noqueue_button = gr.Button("Cancel", elem_id="temporalnet_util_cancel_button")
+            with gr.Row() as noqueue_evn_buttons:
+                start_noqueue_button = gr.Button("Run (No Queue)", variant='primary', elem_id="temporalnet_util_start_button") 
+                cancel_noqueue_button = gr.Button("Cancel", elem_id="temporalnet_util_cancel_button")
+            with gr.Row() as noqueue_evn_info:
                 gr.Markdown('queue를 지원하지 않습니다. 진행상황이 Console 출력으로 표시됩니다. (--no-gradio-queue 옵션이 있다면 빼주세요)')
 
             with gr.Row(visible=False):
@@ -287,9 +286,10 @@ def create_temporal_net_util(sampler_names):
                     lines=2,
                     interactive=False,
                 )
-
             with gr.Row(visible=False):
                 check_complete = gr.Textbox(elem_id="temporalnet_util_check_complete", show_label=False, interactive=False)
+
+
 
     def handle_cancel():
         global share_value
@@ -310,11 +310,11 @@ def create_temporal_net_util(sampler_names):
         queue_enabled = is_queue_enabled()
         print('queue_enabled', queue_enabled)
         if queue_enabled:
-            return gr.Row().update(visible=True), gr.Row().update(visible=False)
+            return gr.Row().update(visible=True), gr.Row().update(visible=False), gr.Row().update(visible=False)
         else:
-            return gr.Row().update(visible=False), gr.Row().update(visible=True)
+            return gr.Row().update(visible=False), gr.Row().update(visible=True), gr.Row().update(visible=True)
 
-    update_button.click(fn=update_state,inputs=[],outputs=[queue_evn_buttons,noqueue_evn_buttons])
+    update_button.click(fn=update_state,inputs=[],outputs=[queue_evn_buttons,noqueue_evn_buttons,noqueue_evn_info])
 
     cancel_button.click(handle_cancel, inputs=[], outputs=[cancel_button])
     start_button.click(
