@@ -70,7 +70,7 @@ class ControlNetUnit:
         guidance_start: float = 0.0,
         guidance_end: float = 1.0,
         control_mode: str = "ControlNet is more important",
-        pixel_perfect: bool = False,
+        pixel_perfect: bool = True,
         guessmode: int = None,  # deprecated: use control_mode
         down_sampling_rate: float = 1,
     ):
@@ -98,7 +98,7 @@ class ControlNetUnit:
 
     def to_dict(self):
         dict = {
-            "image": self.encoded_image if self.encoded_image != None else raw_b64_img(self.input_image) if self.input_image else "",
+            "input_image": self.encoded_image if self.encoded_image != None else raw_b64_img(self.input_image) if self.input_image else "",
             "mask": raw_b64_img(self.mask) if self.mask is not None else None,
             "module": self.module,
             "model": self.model,
@@ -112,6 +112,7 @@ class ControlNetUnit:
             "guidance_end": self.guidance_end,
             "control_mode": self.control_mode,
             "pixel_perfect": self.pixel_perfect,
+            "enabled": True,
             "down_sampling_rate": self.down_sampling_rate,
         }
         if self.threshold_a == -1:

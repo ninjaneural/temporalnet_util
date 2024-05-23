@@ -9,15 +9,35 @@ from helper.util import get_image_paths
 import random
 import time
 
-from controlnet_ext import (
-    ControlNetExt,
-)
+# import importlib
+# from pathlib import Path
+# from modules import extensions
+# import inspect
 
-cn_ext = ControlNetExt()
-if hasattr(cn_ext, 'low_vram'):
-    import helper.webuiapi_next as webuiapi
-else:
-    import helper.webuiapi as webuiapi
+# cn_base_path = ""
+
+# for extension in extensions.active():
+#     if not extension.enabled:
+#         continue
+#     # For cases like sd-webui-controlnet-master
+#     if "sd-webui-controlnet" in extension.name:
+#         controlnet_exists = True
+#         controlnet_path = Path(extension.path)
+#         cn_base_path = ".".join(controlnet_path.parts[-2:])
+#         break
+
+# if cn_base_path:
+#     print(cn_base_path)
+#     external_cn = importlib.import_module(cn_base_path + ".scripts.external_code", "external_code")
+#     print(external_cn.ControlNetUnit)
+#     print(inspect.getsource(external_cn.ControlNetUnit))
+
+#     if hasattr(external_cn.ControlNetUnit, 'low_vram'):
+#         import helper.webuiapi_next as webuiapi
+#         print("helper.webuiapi_next")
+#     else:
+#         import helper.webuiapi as webuiapi
+#         print("helper.webuiapi")
 
 unit_tempo_v1 = webuiapi.ControlNetUnit(
     module="none",
