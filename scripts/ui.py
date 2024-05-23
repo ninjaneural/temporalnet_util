@@ -9,10 +9,7 @@ from modules import shared, script_callbacks
 from modules.sd_samplers import all_samplers
 import helper.video_util as video_util
 from helper.enhance_face import enhance_face
-
-from controlnet_ext import (
-    get_cn_models,
-)
+from helper.cn_models import get_cn_models
 
 def is_queue_enabled():
     # `queue_enabled` 속성이 존재하는지 확인하고, 존재하면 그 값을 반환
@@ -186,7 +183,7 @@ def create_temporal_net_util(sampler_names):
                     video_path = gr.Textbox(label="Input Video Path",placeholder="Input Video Path (eg. d:/work/smart.mp4)")
                     force_fps = gr.Number(value=0, precision=1, label="Force FPS", interactive=True)
                 with gr.Tab(label="Input Frame Images") as input_tab3:
-                    input_folder = gr.Textbox(label="Input Frame Images Folder (TemporalNet-Util)",placeholder="Input Frame Images Folder (eg. d:/work/smart)")
+                    input_folder = gr.Textbox(label="Input Frame Images Folder",placeholder="Input Frame Images Folder (eg. d:/work/smart)")
             with gr.Row(visible=False):
                 input_video_mode = gr.Textbox(label="Selected Tab", show_label=False, value="Input Video", interactive=False)
             with gr.Row():
@@ -259,7 +256,7 @@ def create_temporal_net_util(sampler_names):
                     interactive=True,
                 )
             with gr.Row():
-                output_images_folder = gr.Textbox(label="Output Images Folder (TemporalNet-Util)", placeholder="Folder to output converted frame images")
+                output_images_folder = gr.Textbox(label="Output Images Folder", placeholder="Folder to output converted frame images")
                 overwrite_output_images = gr.Checkbox(label="Overwrite Output Images", placeholder="Overwrite output converted frame images")
 
             with gr.Row():
@@ -274,7 +271,7 @@ def create_temporal_net_util(sampler_names):
                 start_noqueue_button = gr.Button("Run (No Queue)", variant='primary', elem_id="temporalnet_util_start_button") 
                 cancel_noqueue_button = gr.Button("Cancel", elem_id="temporalnet_util_cancel_button")
             with gr.Row() as noqueue_evn_info:
-                gr.Markdown('queue를 지원하지 않습니다. 진행상황이 Console 출력으로 표시됩니다. (--no-gradio-queue 옵션이 있다면 빼주세요)')
+                gr.Markdown('현재 webui에서 queue를 지원하지 않습니다. 진행상황이 Console 출력으로 표시됩니다. (--no-gradio-queue 옵션이 있다면 빼주세요)')
 
             with gr.Row(visible=False):
                 update_button = gr.Button("Update", elem_id="temporalnet_util_update_button") 
