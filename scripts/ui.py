@@ -12,11 +12,11 @@ from helper.cn_models import get_cn_models
 try:
     from modules.sd_samplers import all_samplers
 except ImportError:
-    all_samplers = ["None"]
+    all_samplers = []
 try:
     from modules.sd_schedulers import schedulers
 except ImportError:
-    schedulers = ["None"]
+    schedulers = []
 
 def is_queue_enabled():
     # `queue_enabled` 속성이 존재하는지 확인하고, 존재하면 그 값을 반환
@@ -256,12 +256,15 @@ def create_temporal_net_util(sampler_names, scheduler_names):
                         value=sampler_names[0],
                         visible=True,
                     )
-                    scheduler = gr.Dropdown(
-                        label="Scheduler",
-                        choices=scheduler_names,
-                        value=scheduler_names[0],
-                        visible=True,
-                    )
+                    if len(scheduler_names) > 0:
+                        scheduler = gr.Dropdown(
+                            label="Scheduler",
+                            choices=scheduler_names,
+                            value=scheduler_names[0],
+                            visible=True,
+                        )
+                    else:
+                        scheduler = ""
                     seed = gr.Number(value=2223, precision=1, label="Seed", interactive=True)
 
                 with gr.Row():
