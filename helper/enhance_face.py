@@ -151,17 +151,25 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
                    prompt, neg_prompt, sampler_name, scheduler_name, sampler_step, cfg_scale, denoising_strength)
 
     for frame_index in range(start_index, total_frames):                
-        output_filename = os.path.basename(input_images_path_list[frame_index])
-        output_image_path = os.path.join(output_folder, output_filename)
-
-        frame_number = frame_index + 1
-        print(f"# frame {frame_number}/{total_frames}")
-        yield "", f"# frame {frame_number}/{total_frames}"
-
         if share_value["cancel"]:
             yield "cancel", "cancel clicked"
             return
         
+        output_filename = os.path.basename(input_images_path_list[frame_index])
+        output_image_path = os.path.join(output_folder, output_filename)
+
+        frame_number = frame_index + 1
+        if not overwrite:
+            if os.path.isfile(output_image_path):
+                # time.sleep(0.1)
+                if frame_number < total_frames and not os.path.isfile(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index + 1]))):
+                    print(f"last image {input_images_path_list[frame_index]}")
+                    last_image_arr = np.array(Image.open(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index]))))
+                continue
+
+        print(f"# frame {frame_number}/{total_frames}")
+        yield "", f"# frame {frame_number}/{total_frames}"
+
         if start_frame > frame_number:
             continue
 
@@ -178,15 +186,6 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
             if frame_number == resume_frame - 1:
                 last_image_arr = np.array(Image.open(output_image_path))
             continue
-
-        if not overwrite:
-            if os.path.isfile(output_image_path):
-                print("skip")
-                # time.sleep(0.1)
-                if frame_number < total_frames and not os.path.isfile(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index + 1]))):
-                    print(f"last image {input_images_path_list[frame_index]}")
-                    last_image_arr = np.array(Image.open(os.path.join(output_folder, os.path.basename(input_images_path_list[frame_index]))))
-                continue
 
         if temporalnet_ver == "v2":
             if start_frame < frame_number:

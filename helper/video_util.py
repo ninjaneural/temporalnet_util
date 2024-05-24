@@ -1,5 +1,43 @@
 import os
 import ffmpeg
+import re
+
+def nat_sort(arr):
+    def split_string(s):
+        processed_name = []
+        i = 0
+        while i < len(s):
+            is_num = s[i].isdigit()
+            j = i + 1
+            while j < len(s) and s[j].isdigit() == is_num:
+                j += 1
+            processed_name.append(s[i:j])
+            i = j
+        return processed_name
+
+    def compare(a, b):
+        len_a = len(a)
+        len_b = len(b)
+        min_len = min(len_a, len_b)
+
+        for i in range(min_len):
+            if a[i] != b[i]:
+                is_num_a = a[i].isdigit()
+                is_num_b = b[i].isdigit()
+                if is_num_a and is_num_b:
+                    return int(a[i]) - int(b[i])
+                elif is_num_a:
+                    return -1
+                elif is_num_b:
+                    return 1
+                else:
+                    return -1 if a[i] < b[i] else 1
+        
+        return len_a - len_b
+
+    split_arr = [split_string(v) for v in arr]
+    split_arr.sort(key=lambda x: (x, compare))
+    return [''.join(v) for v in split_arr]
 
 def get_video_fps(video_path):
     try:
@@ -43,13 +81,19 @@ def extract(video_path, output_dir, fps=0, format="%07d.png"):
         
     return video_fps
 
-def combine(images_dir, output_path, sound_video_path="", fps=15, format="%07d.png", start_number=1, crf=17):
-    input_pattern = os.path.join(images_dir, format)
+def combine(images_dir, output_path, sound_video_path="", fps=15, crf=17):
+    # 자연 정렬을 사용하여 이미지 파일 리스트 생성
+    image_files = [f for f in os.listdir(images_dir) if f.endswith('.png')]
+    image_files = nat_sort(image_files)
+    image_paths = [os.path.join(images_dir, f) for f in image_files]
     
-    video_input = (
-        ffmpeg
-        .input(input_pattern, r=fps, start_number=start_number)
-    )
+    # ffmpeg concat demuxer input 파일 생성
+    concat_input_file = os.path.join(images_dir, 'concat_input.txt')
+    with open(concat_input_file, 'w') as f:
+        for image_path in image_paths:
+            f.write(f"file '{image_path}'\n")
+    
+    video_input = ffmpeg.input(concat_input_file, r=fps, f='concat', safe=0)
 
     video_output_args = {
         'c:v': 'libx264',
