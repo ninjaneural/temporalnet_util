@@ -264,7 +264,11 @@ def create_temporal_net_util(sampler_names, scheduler_names):
                             visible=True,
                         )
                     else:
-                        scheduler = ""
+                        scheduler = gr.Textbox(
+                            label="Scheduler",
+                            value="",
+                            visible=False,
+                        )
                     seed = gr.Number(value=2223, precision=1, label="Seed", interactive=True)
 
                 with gr.Row():
