@@ -9,36 +9,6 @@ from helper.util import get_image_paths
 import random
 import time
 
-# import importlib
-# from pathlib import Path
-# from modules import extensions
-# import inspect
-
-# cn_base_path = ""
-
-# for extension in extensions.active():
-#     if not extension.enabled:
-#         continue
-#     # For cases like sd-webui-controlnet-master
-#     if "sd-webui-controlnet" in extension.name:
-#         controlnet_exists = True
-#         controlnet_path = Path(extension.path)
-#         cn_base_path = ".".join(controlnet_path.parts[-2:])
-#         break
-
-# if cn_base_path:
-#     print(cn_base_path)
-#     external_cn = importlib.import_module(cn_base_path + ".scripts.external_code", "external_code")
-#     print(external_cn.ControlNetUnit)
-#     print(inspect.getsource(external_cn.ControlNetUnit))
-
-#     if hasattr(external_cn.ControlNetUnit, 'low_vram'):
-#         import helper.webuiapi_next as webuiapi
-#         print("helper.webuiapi_next")
-#     else:
-#         import helper.webuiapi as webuiapi
-#         print("helper.webuiapi")
-
 unit_tempo_v1 = webuiapi.ControlNetUnit(
     module="none",
     model="diff_control_sd15_temporalnet_fp16 [adc6bd97]",
@@ -54,10 +24,39 @@ unit_tempo_v2 = webuiapi.ControlNetUnit(
     pixel_perfect=True,
 )
 
-api = webuiapi.WebUIApi()
+def save_config_to_txt(file_path: str, sd_model_checkpoint: str,
+                       input_folder: str, output_folder: str, seed: int, frame_width: int, frame_height: int, 
+                       temporalnet_ver: str, temporalnet_model: str, temporalnet_weight: float, prompt: str, neg_prompt: str, 
+                       sampler_name: str, scheduler_name:str, sampler_step: int, cfg_scale: int, denoising_strength: float):
+    # 사전 형태로 변수값들을 저장
+    config = {
+        "sd_model_checkpoint": sd_model_checkpoint,
+        "input_folder": input_folder,
+        "output_folder": output_folder,
+        "seed": seed,
+        "frame_width": frame_width,
+        "frame_height": frame_height,
+        "temporalnet_ver": temporalnet_ver,
+        "temporalnet_model": temporalnet_model,
+        "temporalnet_weight": temporalnet_weight,
+        "prompt": prompt,
+        "neg_prompt": neg_prompt,
+        "sampler_name": sampler_name,
+        "scheduler_name": scheduler_name,
+        "sampler_step": sampler_step,
+        "cfg_scale": cfg_scale,
+        "denoising_strength": denoising_strength,
+    }
 
-def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:str, seed:int, frame_width:int, frame_height:int, temporalnet_ver:str, temporalnet_model:str, temporalnet_weight:float, prompt:str, neg_prompt:str, sampler_name:str, sampler_step:int, cfg_scale:int, denoising_strength:float, overwrite: bool, reverse: bool, resume_frame: int, start_frame: int, end_frame: int):
+    with open(file_path, 'w') as file:
+        for key, value in config.items():
+            file.write(f"{key}={value}\n")
+
+def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:str, seed:int, frame_width:int, frame_height:int, temporalnet_ver:str, temporalnet_model:str, temporalnet_weight:float, prompt:str, neg_prompt:str, sampler_name:str, scheduler_name:str, sampler_step:int, cfg_scale:int, denoising_strength:float, overwrite: bool, reverse: bool, resume_frame: int, start_frame: int, end_frame: int):
     print(f"###########################################")
+
+    api = webuiapi.WebUIApi(port=share_value["server_port"])
+
     if input_folder and os.path.exists(input_folder):
         face_image_folder = os.path.normpath(os.path.join(output_folder, "./face_images"))
         flow_image_folder = os.path.normpath(os.path.join(output_folder, "./flow_images"))
@@ -73,6 +72,7 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
     print(f"# temporalnet_model {temporalnet_model}")
     print(f"# temporalnet_weight {temporalnet_weight}")
     print(f"# sampler {sampler_name}")
+    print(f"# scheduler {scheduler_name}")
 
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(face_image_folder, exist_ok=True)
@@ -85,6 +85,12 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
 
     if not temporalnet_ver:
         temporalnet_ver = "v1"
+
+    if not prompt:
+        prompt = "face close up"
+
+    print(f"# prompt {prompt}")
+    print(f"# neg_prompt {neg_prompt}")
 
     # temporalnet v2 bug
     # temporalnet 적용후 controlnet 안쓸때 에러
@@ -117,9 +123,6 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
     if start_frame < 1:
         start_frame = 1
     
-    if not prompt:
-        prompt = "face close up"
-
     # face config
     face_threshold = 0.2
     face_padding = 16
@@ -142,6 +145,10 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
 
     print(f"# frame_width {frame_width}")
     print(f"# frame_height {frame_height}")
+
+    config_file_path = os.path.join(output_folder, "config.txt")
+    save_config_to_txt(config_file_path, share_value["sd_model_checkpoint"], input_folder, output_folder, seed, frame_width, frame_height, temporalnet_ver, temporalnet_model, temporalnet_weight, 
+                   prompt, neg_prompt, sampler_name, scheduler_name, sampler_step, cfg_scale, denoising_strength)
 
     for frame_index in range(start_index, total_frames):                
         output_filename = os.path.basename(input_images_path_list[frame_index])
@@ -217,6 +224,7 @@ def enhance_face(share_value, input_folder: str, output_folder: str, seed_mode:s
                 prompt=prompt,
                 negative_prompt=neg_prompt,
                 sampler_name=sampler_name,
+                scheduler=scheduler_name,
                 steps=sampler_step,
                 images=[face_img],
                 denoising_strength=denoising_strength,

@@ -32,8 +32,6 @@ for extension in extensions.active():
         cn_base_path = ".".join(controlnet_path.parts[-2:])
         break
 
-print("cn_base_path", cn_base_path)
-
 if controlnet_path is not None:
     sd_webui_controlnet_path = controlnet_path.resolve().parent
     if sd_webui_controlnet_path.stem in ("extensions", "extensions-builtin"):
@@ -61,7 +59,6 @@ def get_cn_model_dirs() -> list[Path]:
 def _get_cn_models() -> list[str]:
     cn_model_exts = (".pt", ".pth", ".ckpt", ".safetensors")
     dirs = get_cn_model_dirs()
-    print("dirs",dirs)
     name_filter = shared.opts.data.get("control_net_models_name_filter", "")
     name_filter = name_filter.strip(" ").lower()
 

@@ -264,6 +264,7 @@ class WebUIApi:
         seed_resize_from_h=0,
         seed_resize_from_w=0,
         sampler_name=None,  # use this instead of sampler_index
+        scheduler=None,
         batch_size=1,
         n_iter=1,
         steps=None,
@@ -336,6 +337,7 @@ class WebUIApi:
             "override_settings": override_settings,
             "override_settings_restore_afterwards": override_settings_restore_afterwards,
             "sampler_name": sampler_name,
+            "scheduler": scheduler,
             "sampler_index": sampler_index,
             "script_name": script_name,
             "script_args": script_args,
@@ -394,6 +396,7 @@ class WebUIApi:
         seed_resize_from_h=0,
         seed_resize_from_w=0,
         sampler_name=None,  # use this instead of sampler_index
+        scheduler=None,
         batch_size=1,
         n_iter=1,
         steps=None,
@@ -470,6 +473,7 @@ class WebUIApi:
             "override_settings_restore_afterwards": override_settings_restore_afterwards,
             "sampler_name": sampler_name,
             "sampler_index": sampler_index,
+            "scheduler": scheduler,
             "include_init_images": include_init_images,
             "script_name": script_name,
             "script_args": script_args,
