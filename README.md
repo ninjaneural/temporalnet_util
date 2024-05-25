@@ -6,9 +6,11 @@ TemporalNet을 사용하여 face detail을 지원하는 간단한 sd-webui exten
 
 ## Note
 
-이 확장은 API를 사용하고 있으므로 --api 인수를 활성화해야해요  
+이 확장은 API를 사용하고 있으므로 **--api** 인수를 활성화해야해요  
 (This extension is using API, you need to activate the --api argument.)
 
+COMMANDLINE_ARGS에 --api를 추가해주세요~  
+(Please add --api to COMMANDLINE_ARGS)  
 
 * --api 추가하는 예제 windows (webui-user.bat)
 ```
@@ -31,3 +33,9 @@ call webui.bat
 * TemporalNet v2 [(homepage)](https://huggingface.co/CiaraRowles/TemporalNet2)
 
   [temporalnetversion2.safetensors Download](https://huggingface.co/CiaraRowles/TemporalNet2/resolve/main/temporalnetversion2.safetensors)
+
+  다운받아서 models/ControlNet 에 저장해주세요!  
+  (Please download and save it to models/ControlNet)  
+
+## TemporalNet V2 Guide
+
