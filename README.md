@@ -3,6 +3,12 @@
 TemporalNet을 사용하여 face detail을 지원하는 간단한 sd-webui extension이에요  
 (Simple extension that helps with face detail using TemporalNet.)
 
+## Install
+
+1. Open "Extensions" tab.
+2. Open "Install from URL" tab in the tab.
+3. Enter https://github.com/ninjaneural/temporalnet_util.git to "URL for extension's git repository".
+4. Press "Install" button.
 
 ## Note
 
