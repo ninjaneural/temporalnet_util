@@ -49,14 +49,31 @@ def ui_buttons(status, complete = False):
     else:
         return status, "", gr.Button.update(visible=False), gr.Button.update(value="Cancel", visible=True)
 
-def process_video_noqueue(input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video):
-    for status, complete, btn1, btn2 in process_video(input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video):
+def process_video_noqueue(
+    input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,
+    seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,
+    controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end,
+    output_images_folder,overwrite_output_images,output_video):
+    for status, complete, btn1, btn2 in process_video(
+        input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,
+        seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,
+        controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end,
+        output_images_folder,overwrite_output_images,output_video):
         print(status)
     
     return ui_buttons(status, True)
 
-def process_video(input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video):
+def process_video(
+    input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,
+    seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,
+    controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end,
+    output_images_folder,overwrite_output_images,output_video):
     global share_value
+
+    # print(controlnet_input_image)
+    # print(controlnet_module)
+    # print(controlnet_model)
+    # print(controlnet_weight)
 
     from modules.shared_cmd_options import cmd_opts
     share_value["cancel"] = False
@@ -118,6 +135,12 @@ def process_video(input_video_mode,upload_video,video_path,input_folder,force_fp
         0,
         0,
         0,
+        controlnet_input_image,
+        controlnet_module,
+        controlnet_model,
+        controlnet_weight, 
+        controlnet_guidance_start, 
+        controlnet_guidance_end,
     ):
         if update=="done":
             yield ui_buttons("combine video file..")
@@ -136,19 +159,21 @@ def process_video(input_video_mode,upload_video,video_path,input_folder,force_fp
 
 def create_controlnet(cn_models):
     with gr.Row(variant="panel"):
+        controlnet_input_image = gr.Image(label="Input Image", type="pil", elem_id="input_image")
+
         with gr.Column(variant="compact"):
-            controlnet_model = gr.Dropdown(
-                label="ControlNet model",
-                choices=cn_models,
+            controlnet_module = gr.Dropdown(
+                label="ControlNet module",
+                choices=["None","ip-adapter_face_id_plus","ip-adapter_face_id"],
                 value="None",
                 visible=True,
                 type="value",
                 interactive=True,
             )
 
-            controlnet_module = gr.Dropdown(
-                label="ControlNet module",
-                choices=["None"],
+            controlnet_model = gr.Dropdown(
+                label="ControlNet model",
+                choices=cn_models,
                 value="None",
                 visible=True,
                 type="value",
@@ -185,9 +210,11 @@ def create_controlnet(cn_models):
                 visible=True,
                 interactive=True,
             )
+    return (controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end)
 
 def create_temporal_net_util(sampler_names, scheduler_names):
     cn_models = [*get_cn_models()]
+    cn_face_models = [*get_cn_models("ip-adapter")]
 
     with gr.Row():
         with gr.Column(variant='panel'):
@@ -290,10 +317,14 @@ def create_temporal_net_util(sampler_names, scheduler_names):
                         minimum=0.0,
                         maximum=1.0,
                         step=0.01,
-                        value=0.3,
+                        value=0.4,
                         visible=True,
                         interactive=True,
                     )
+                
+                with gr.Accordion(label="ControlNet (IP-Adapter FaceID)", open=False):
+                    controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end = create_controlnet(cn_face_models)
+
                 with gr.Row():
                     output_images_folder = gr.Textbox(label="Output Images Folder", placeholder="Folder to output converted frame images")
                     overwrite_output_images = gr.Checkbox(label="Overwrite Output Images", placeholder="Overwrite output converted frame images")
@@ -354,14 +385,24 @@ def create_temporal_net_util(sampler_names, scheduler_names):
     cancel_button.click(handle_cancel, inputs=[], outputs=[cancel_button])
     start_button.click(
         fn=process_video, 
-        inputs=[input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video], 
+        inputs=[
+            input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,
+            seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,
+            controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end,
+            output_images_folder,overwrite_output_images,output_video
+        ], 
         outputs=[status, check_complete, start_button, cancel_button]
     )
 
     cancel_noqueue_button.click(handle_cancel_noqueue, inputs=[], outputs=[cancel_button])
     start_noqueue_button.click(
         fn=process_video_noqueue, 
-        inputs=[input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,output_images_folder,overwrite_output_images,output_video], 
+        inputs=[
+            input_video_mode,upload_video,video_path,input_folder,force_fps,resize_width,resize_height,target_fps,
+            seed,sampler,scheduler,sampler_step,cfg_scale,temporalnet_ver,temporalnet_model,temporalnet_weight,prompt,neg_prompt,denoise,
+            controlnet_input_image, controlnet_module, controlnet_model, controlnet_weight, controlnet_guidance_start, controlnet_guidance_end,
+            output_images_folder,overwrite_output_images,output_video
+        ], 
         outputs=[status, check_complete, start_button, cancel_button]
     )
 

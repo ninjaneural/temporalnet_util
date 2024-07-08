@@ -12,6 +12,7 @@ cn_model_module = {
     "tile": "tile_resample",
     "depth": "depth_midas",
     "temporalnet": "temporalnet",
+    "ip-adapter": "ip-adapter",
 }
 cn_model_regex = re.compile("|".join(cn_model_module.keys()), flags=re.I)
 
@@ -56,11 +57,12 @@ def get_cn_model_dirs() -> list[Path]:
     return dirs
 
 
-def _get_cn_models() -> list[str]:
+def _get_cn_models(cn_model_filter) -> list[str]:
     cn_model_exts = (".pt", ".pth", ".ckpt", ".safetensors")
     dirs = get_cn_model_dirs()
     name_filter = shared.opts.data.get("control_net_models_name_filter", "")
     name_filter = name_filter.strip(" ").lower()
+    cn_model_regex = re.compile(cn_model_filter, flags=re.I)
 
     model_paths = []
 
@@ -87,7 +89,7 @@ def _get_cn_models() -> list[str]:
     return models
 
 
-def get_cn_models() -> list[str]:
+def get_cn_models(cn_model_filter="temporalnet") -> list[str]:
     if controlnet_exists:
-        return _get_cn_models()
+        return _get_cn_models(cn_model_filter)
     return []
